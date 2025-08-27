@@ -1,0 +1,36 @@
+# --- Web framework ---
+fastapi
+uvicorn[standard]  # для запуску (можна gunicorn+uvicorn)
+
+# --- Database & ORM ---
+asyncpg
+SQLAlchemy>=2.0  # асинхронна версія, core 2.x
+alembic           # міграції
+
+# --- Auth & Security ---
+python-jose[cryptography]   # JWT tokens
+passlib[bcrypt]             # Хешування паролів
+
+# --- Celery & Async tasks ---
+celery[redis]               # черги задач
+redis                       # для брокера
+
+# --- Utils ---
+pydantic
+pydantic[email]
+pydantic-settings
+python-dotenv               # для .env
+httpx                       # async http клієнт (наприклад, для Telegram API)
+loguru                      # красивий логер
+python-multipart
+
+# --- Telegram bot (опціонально) ---
+aiogram                     # async бібліотека для Telegram Bot API
+
+# --- Testing & Dev ---
+pytest
+pytest-asyncio
+
+# --- Lint/Format (опційно) ---
+black
+flake8
