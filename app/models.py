@@ -54,6 +54,13 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_registered_from_telegram: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    is_subscribed: Mapped[bool] = mapped_column(Boolean, default=False)
+    subscription_id: Mapped[str] = mapped_column(String(100), nullable=True)
+    subscription_end: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    cancel_at_period_end: Mapped[bool] = mapped_column(Boolean, default=False)
+
     transactions: Mapped[List[Transaction]] = relationship(
         "Transaction", back_populates="user"
     )

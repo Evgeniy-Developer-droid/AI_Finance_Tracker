@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func, update, delete
+from sqlalchemy import func, update, delete, cast, Date
 from typing import List, Optional
 
 from app.models import User, Transaction
@@ -66,12 +66,73 @@ async def get_transactions(
     limit: int = 100,
     start_date: date = None,
     end_date: date = None,
+    order: str = "desc",
 ) -> List[Transaction]:
     query = select(Transaction).where(Transaction.user_id == user_id)
     if start_date:
         query = query.where(Transaction.tx_date >= start_date)
     if end_date:
         query = query.where(Transaction.tx_date <= end_date)
+    query = query.order_by(
+        Transaction.tx_date.desc() if order == "desc" else Transaction.tx_date.asc()
+    )
     query = query.offset(skip).limit(limit)
     result = await db.execute(query)
     return result.scalars().all()
+
+
+async def get_transactions_by_type(
+    db: AsyncSession,
+    user_id: int,
+    tx_type: str,
+    limit: int = None,
+    start_date: date = None,
+    end_date: date = None,
+) -> List[Transaction]:
+    query = select(Transaction).where(
+        Transaction.user_id == user_id, Transaction.type == tx_type
+    )
+    if start_date:
+        query = query.where(Transaction.tx_date >= start_date)
+    if end_date:
+        query = query.where(Transaction.tx_date <= end_date)
+    query = query.order_by(Transaction.tx_date.desc())
+    if limit is not None:
+        query = query.limit(limit)
+    result = await db.execute(query)
+    return result.scalars().all()
+
+
+async def get_transactions_by_type_grouped(
+    db: AsyncSession,
+    user_id: int,
+    tx_type: str,
+    start_date: date = None,
+    end_date: date = None,
+) -> List[Transaction]:
+    query = select(
+        cast(Transaction.tx_date, Date).label("tx_date"),
+        func.sum(Transaction.amount).label("amount"),
+    ).where(Transaction.user_id == user_id, Transaction.type == tx_type)
+    query = query.group_by(cast(Transaction.tx_date, Date))
+    query = query.order_by(cast(Transaction.tx_date, Date).asc())
+    result = await db.execute(query)
+    return result.all()
+
+
+async def get_transactions_amount(
+    db: AsyncSession,
+    user_id: int,
+    tx_type: str,
+    start_date: date = None,
+    end_date: date = None,
+) -> float:
+    query = select(func.sum(Transaction.amount)).where(
+        Transaction.user_id == user_id, Transaction.type == tx_type
+    )
+    if start_date:
+        query = query.where(Transaction.tx_date >= start_date)
+    if end_date:
+        query = query.where(Transaction.tx_date <= end_date)
+    result = await db.execute(query)
+    return result.scalar() or 0.0

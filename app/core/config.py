@@ -10,19 +10,11 @@ class Settings(BaseSettings):
     REDIS_URL: str = Field(default="redis://redis:6379/0")
     SECRET_KEY: str = Field(default="super-secret")
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 365
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     CURRENCY_CHOICES: List[str] = [
         "USD",
-        "EUR",
-        "UAH",
-        "GBP",
-        "CAD",
-        "AUD",
-        "JPY",
-        "CHF",
-        "CNY",
-        "PLN",
+        "UAH"
     ]
     CATEGORY_CHOICES_EXPENSE: List[str] = [
         "Food",

@@ -3,8 +3,16 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordRequestForm
 
+from app.api.deps import get_current_user
 from app.db.session import get_db
-from app.schemas import RegistrationInput, UserCreate, UserOut
+from app.schemas import (
+    CheckEmail,
+    RegistrationInput,
+    UserCreate,
+    UserOut,
+    UserUpdate,
+    LoginInApp,
+)
 from app.models import User
 from app.core.security import (
     verify_password,
@@ -19,7 +27,7 @@ from app.crud import get_user_by_email, create_user, update_user
 router = APIRouter()
 
 
-@router.post("/signup", response_model=UserOut, status_code=201)
+@router.post("/signup", response_model=dict, status_code=201)
 async def signup(user_in: RegistrationInput, db: AsyncSession = Depends(get_db)):
     user = await get_user_by_email(db, user_in.email)
     if user:
@@ -28,11 +36,22 @@ async def signup(user_in: RegistrationInput, db: AsyncSession = Depends(get_db))
     user_obj = User(
         email=user_in.email,
         hashed_password=hashed_password,
-        full_name=user_in.full_name
+        full_name=user_in.full_name,
+        is_subscribed=False,
+        telegram_chat_id=None,
+        currency=user_in.currency,
+        language=user_in.language,
     )
     # Використовуємо CRUD create_user
-    created_user = await create_user(db, user_obj)
-    return created_user
+    user = await create_user(db, user_obj)
+    access_token = create_access_token(
+        {"sub": user.email},
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    return {
+        "user": UserOut.model_validate(user),
+        "access_token": access_token,
+    }
 
 
 @router.post("/login")
@@ -60,6 +79,21 @@ async def login(
     }
 
 
+@router.post("/login/app")
+async def login_app(data: LoginInApp, db: AsyncSession = Depends(get_db)):
+    user = await get_user_by_email(db, data.email)
+    if not user or not verify_password(data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+        )
+    access_token = create_access_token(
+        {"sub": user.email},
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    return {"access_token": access_token}
+
+
 @router.post("/refresh")
 async def refresh_token(refresh_token: str = Body(..., embed=True)):
     payload = decode_refresh_token(refresh_token)
@@ -70,3 +104,29 @@ async def refresh_token(refresh_token: str = Body(..., embed=True)):
         expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     return {"access_token": new_access_token, "token_type": "bearer"}
+
+
+@router.get("/me", response_model=UserOut)
+async def get_me(
+    db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)
+):
+    return user
+
+
+@router.put("/me", response_model=UserOut)
+async def update_me(
+    user_in: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    update_data = user_in.model_dump(exclude_unset=True)
+    user = await update_user(db, user.id, update_data)
+    return user
+
+
+@router.post("/check_email")
+async def check_email(data: CheckEmail, db: AsyncSession = Depends(get_db)):
+    user = await get_user_by_email(db, data.email)
+    if user:
+        return {"exists": True}
+    return {"exists": False}
