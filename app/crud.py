@@ -4,7 +4,20 @@ from sqlalchemy.future import select
 from sqlalchemy import func, update, delete, cast, Date
 from typing import List, Optional
 
-from app.models import User, Transaction
+from app.models import User, Transaction, Order
+
+
+# ---------- ORDER ----------
+async def create_order(db: AsyncSession, order: Order) -> Order:
+    db.add(order)
+    await db.commit()
+    await db.refresh(order)
+    return order
+
+
+async def get_order(db: AsyncSession, key: str) -> Optional[Order]:
+    result = await db.execute(select(Order).where(Order.key == key))
+    return result.scalar_one_or_none()
 
 
 # ---------- USER ----------

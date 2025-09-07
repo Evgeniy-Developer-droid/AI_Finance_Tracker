@@ -34,3 +34,6 @@ pytest-asyncio
 # --- Lint/Format (опційно) ---
 black
 flake8
+requests
+
+openai==1.106.1

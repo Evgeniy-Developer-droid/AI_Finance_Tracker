@@ -83,6 +83,24 @@ class TransactionOut(TransactionInDBBase):
     pass
 
 
+class AnalyticsTransactionForAI(BaseModel):
+    id: int
+    tx_date: str
+    amount: float
+    currency: str
+    category: Optional[str] = None
+    type: Literal["income", "expense"]
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    # replace datetime to midnight
+    @model_validator(mode="before")
+    def replace_datetime(cls, values: Transaction):
+        if values.tx_date:
+            values.tx_date = values.tx_date.strftime("%Y-%m-%d %H:%M:%S")
+        return values
+
+
 class AnalyticsTransaction(BaseModel):
     id: int
     tx_date: date_datetime = Field(alias="date")
@@ -120,3 +138,7 @@ class AnalyticsTransactionOut(BaseModel):
     expense_today_amount: float
     income_month_amount: float
     expense_month_amount: float
+
+
+class AIGenerateInput(BaseModel):
+    question: str

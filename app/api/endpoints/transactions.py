@@ -58,6 +58,10 @@ async def get_transactions_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> List[TransactionOut]:
+    start = start or datetime.now().replace(
+        day=1, hour=0, minute=0, second=0, microsecond=0
+    )
+    end = end or datetime.now()
     return await get_transactions(
         db,
         current_user.id,

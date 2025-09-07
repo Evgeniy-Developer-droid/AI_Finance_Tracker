@@ -59,8 +59,22 @@ class User(Base):
     subscription_end: Mapped[Optional[datetime]] = mapped_column(
         DateTime, nullable=True
     )
+    subscription_start: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    liqpay_order_id: Mapped[str] = mapped_column(String(100), nullable=True)
+    order_id: Mapped[str] = mapped_column(String(100), nullable=True)
     cancel_at_period_end: Mapped[bool] = mapped_column(Boolean, default=False)
 
     transactions: Mapped[List[Transaction]] = relationship(
         "Transaction", back_populates="user"
     )
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
